@@ -1,26 +1,619 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fbf8f4">
     <title>Moodboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/base.css">
-    
-  </head>
-  <body class="relative">
-    <div class="fixed top-0 left-0 z-10 p-1 h-full">
-        <div class="bg-white rounded-xl border-2 border-[#EBCBCB] w-[300px] h-full">
-            <h1 class="font-bold p-2">Moodboard</h1>
+</head>
+<body>
+    <aside class="sidebar">
+        <a class="sidebar-brand" href="/" aria-label="Moodboard home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-name">Moodboard</span>
+        </a>
+        <div class="sidebar-bottom">
+            <button class="dictation-btn" id="dictation-btn" type="button" aria-label="Start dictation" title="Dictate a note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line>
+                </svg>
+            </button>
+            <div id="dictation-text" class="dictation-text" role="status" aria-live="polite">Tap the mic to dictate a note</div>
         </div>
-    </div>
+    </aside>
 
-    <div class="fixed inset-0 bg-gray-100 p-2">
-      <p class="mt-12 text-gray-700">Your canvas</p>
-    </div>
-  </body>
+    <main class="workspace">
+        <header class="topbar">
+            <div class="board-title"><span class="title-spark">✳</span> Moodboard <span class="title-divider">/</span> <span class="board-name">Untitled board</span></div>
+            <div class="topbar-right"><button class="ask-toggle" id="askToggle" type="button"><span>✧</span> Ask board</button><span class="save-indicator"><i></i> Saved on this device</span><button class="avatar" type="button" aria-label="Your board">y</button></div>
+        </header>
+
+        <section class="canvas-shell">
+            <div class="canvas-toolbar" role="toolbar" aria-label="Canvas tools">
+                <div class="tool-group">
+                    <button class="tool-button is-active" id="selectTool" type="button" title="Select and move objects (V)" aria-label="Select and move objects">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5 18.5 13l-6.1.7-3.2 5.6L5 3.5Z"></path></svg>
+                    </button>
+                    <button class="tool-button" id="handTool" type="button" title="Move canvas (H)" aria-label="Move canvas">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v6c0 4-2.5 7-7 7h-1c-2 0-3.4-.8-4.5-2.3L4 15a1.5 1.5 0 0 1 2.4-1.8L8 15v-3Z"></path></svg>
+                    </button>
+                </div>
+                <span class="toolbar-divider"></span>
+                <button class="toolbar-action" id="addNoteBtn" type="button"><span class="action-icon note-icon">✎</span><span>Note</span></button>
+                <button class="toolbar-action" id="addImageBtn" type="button"><span class="action-icon image-icon">▧</span><span>Image</span></button>
+                <input id="imageInput" class="visually-hidden" type="file" accept="image/*" multiple>
+            </div>
+
+            <aside class="assistant-panel" id="assistantPanel" aria-label="Ask your moodboard" hidden>
+                <header class="assistant-header"><div><span class="assistant-spark">✧</span><div><strong>Ask your board</strong><small>Answers from this whole moodboard</small></div></div><button id="closeAssistant" type="button" aria-label="Close assistant">×</button></header>
+                <p class="assistant-privacy">Board notes and images go to OpenAI for answers; recordings go to ElevenLabs for transcription. API keys stay on this app’s server.</p>
+                <div class="chat-messages" id="chatMessages" aria-live="polite">
+                    <div class="assistant-message"><span class="message-spark">✧</span><p>I can help you find patterns, compare ideas, or think through what’s on this board.</p></div>
+                    <div class="suggestion-list"><button type="button" class="suggestion">What themes keep showing up?</button><button type="button" class="suggestion">What feeling does this board give?</button></div>
+                </div>
+                <form class="ask-form" id="askForm">
+                    <textarea id="askInput" maxlength="1000" rows="2" placeholder="Ask something about your board…" required></textarea>
+                    <div class="ask-form-bottom"><span>Uses all board notes and images</span><div><button type="button" class="ask-mic" id="askMic" title="Dictate a question" aria-label="Dictate a question">🎙</button><button class="ask-submit" id="askSubmit" type="submit" aria-label="Send question">↑</button></div></div>
+                </form>
+            </aside>
+
+            <div class="canvas-viewport" id="canvasViewport" aria-label="Moodboard canvas. Drag objects to arrange them, drag the background to pan, and use the mouse wheel to move around.">
+                <div class="canvas-world" id="canvasWorld">
+                    <div class="empty-state" id="emptyState">
+                        <span class="empty-doodle">✳</span>
+                        <h1>Make a little space for ideas</h1>
+                        <p>Bring in pictures, add a note, and move things around until they feel right.</p>
+                        <div class="empty-actions"><button class="empty-button" id="emptyImageBtn" type="button">＋ Add an image</button><button class="empty-link" id="emptyNoteBtn" type="button">Write a note instead</button></div>
+                    </div>
+                </div>
+                <div class="drop-overlay" id="dropOverlay"><span>✿</span> Drop it anywhere</div>
+                <div id="toast" class="toast" role="status" aria-live="polite"></div>
+                <div class="canvas-hint" id="canvasHint">Drag the canvas to move around <span>·</span> Space + drag</div>
+                <div class="zoom-controls" aria-label="Zoom controls">
+                    <button id="zoomOut" type="button" title="Zoom out" aria-label="Zoom out">−</button>
+                    <span id="zoomLabel">100%</span>
+                    <button id="zoomIn" type="button" title="Zoom in" aria-label="Zoom in">＋</button>
+                    <span class="zoom-divider"></span>
+                    <button id="fitCanvas" class="fit-button" type="button" title="Fit all objects" aria-label="Fit all objects">Fit</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="note-dialog" id="noteDialog">
+        <form id="noteForm">
+            <div class="dialog-top"><div><p class="eyebrow">A THOUGHT TO KEEP</p><h2>Write a little note</h2></div><button class="close-button" id="closeDialog" type="button" aria-label="Close">×</button></div>
+            <label class="visually-hidden" for="noteText">Your note</label>
+            <textarea id="noteText" maxlength="1000" placeholder="A color, a place, a little daydream…" required></textarea>
+            <div class="dialog-bottom"><div class="color-picker" aria-label="Choose note color">
+                <button type="button" class="color-swatch is-selected" data-color="butter" aria-label="Butter yellow"></button><button type="button" class="color-swatch" data-color="rose" aria-label="Soft rose"></button><button type="button" class="color-swatch" data-color="lavender" aria-label="Lavender"></button><button type="button" class="color-swatch" data-color="mint" aria-label="Mint"></button>
+            </div><button class="save-note" type="submit">Pin to canvas <span>↗</span></button></div>
+        </form>
+    </dialog>
+
+    <script>
+        const DB_NAME = "little-moodboard";
+        const STORE_NAME = "board-items";
+        const viewport = document.getElementById("canvasViewport");
+        const world = document.getElementById("canvasWorld");
+        const emptyState = document.getElementById("emptyState");
+        const imageInput = document.getElementById("imageInput");
+        const noteDialog = document.getElementById("noteDialog");
+        const noteText = document.getElementById("noteText");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const dictationBtn = document.getElementById("dictation-btn");
+        const dictationText = document.getElementById("dictation-text");
+        const assistantPanel = document.getElementById("assistantPanel");
+        const chatMessages = document.getElementById("chatMessages");
+        const askInput = document.getElementById("askInput");
+        const askSubmit = document.getElementById("askSubmit");
+        const askMic = document.getElementById("askMic");
+        const imageUrls = new Map();
+        let panX = 0, panY = 0, zoom = 1, activeGesture = null;
+        let selectedColor = "butter", tool = "select", spaceDown = false, dragDepth = 0, toastTimer;
+        let activeRecorder = null, activeRecordButton = null, lastPointer = null;
+        const conversationHistory = [];
+
+        const dbReady = new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME, { keyPath: "id" });
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        async function storeItem(item) {
+            const db = await dbReady;
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                tx.objectStore(STORE_NAME).put(item);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function getItems() {
+            const db = await dbReady;
+            return new Promise((resolve, reject) => {
+                const request = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll();
+                request.onsuccess = () => resolve(request.result.sort((a, b) => a.createdAt - b.createdAt));
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function removeItem(id) {
+            const db = await dbReady;
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                tx.objectStore(STORE_NAME).delete(id);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        function worldPoint(clientX, clientY) {
+            const rect = viewport.getBoundingClientRect();
+            return { x: (clientX - rect.left - panX) / zoom, y: (clientY - rect.top - panY) / zoom };
+        }
+
+        function centerPoint(offset = 0) {
+            const rect = viewport.getBoundingClientRect();
+            const point = worldPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return { x: point.x - 125 + offset, y: point.y - 95 + offset };
+        }
+
+        function applyView() {
+            world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+            zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+        }
+
+        function setZoom(nextZoom, clientX, clientY) {
+            const rect = viewport.getBoundingClientRect();
+            const cx = clientX ?? rect.left + rect.width / 2;
+            const cy = clientY ?? rect.top + rect.height / 2;
+            const point = worldPoint(cx, cy);
+            zoom = Math.max(.25, Math.min(2.5, nextZoom));
+            panX = cx - rect.left - point.x * zoom;
+            panY = cy - rect.top - point.y * zoom;
+            applyView();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.classList.add("is-visible");
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
+        }
+
+        function startPan(event) {
+            activeGesture = { type: "pan", x: event.clientX, y: event.clientY, panX, panY };
+            viewport.classList.add("is-panning");
+        }
+
+        function createCard(item) {
+            const card = document.createElement("article");
+            card.className = item.type === "note" ? `board-card note-card note-${item.color || "butter"}` : "board-card image-card";
+            card.dataset.id = item.id;
+            card.style.left = `${item.x}px`;
+            card.style.top = `${item.y}px`;
+            card.style.setProperty("--tilt", `${item.tilt || 0}deg`);
+
+            if (item.type === "image") {
+                const img = document.createElement("img");
+                img.alt = item.name ? `Moodboard image: ${item.name}` : "Moodboard image";
+                img.draggable = false;
+                if (!imageUrls.has(item.id)) imageUrls.set(item.id, URL.createObjectURL(item.blob));
+                img.src = imageUrls.get(item.id);
+                card.append(img);
+                if (item.name) {
+                    const caption = document.createElement("p");
+                    caption.className = "image-caption";
+                    caption.textContent = item.name;
+                    card.append(caption);
+                }
+            } else {
+                const pin = document.createElement("span");
+                pin.className = "note-pin";
+                pin.textContent = "✳";
+                const text = document.createElement("p");
+                text.className = "note-copy";
+                text.textContent = item.text;
+                const date = document.createElement("span");
+                date.className = "note-date";
+                date.textContent = new Date(item.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                card.append(pin, text, date);
+            }
+
+            const remove = document.createElement("button");
+            remove.className = "card-remove";
+            remove.type = "button";
+            remove.setAttribute("aria-label", "Remove from canvas");
+            remove.title = "Remove from canvas";
+            remove.textContent = "×";
+            remove.addEventListener("pointerdown", (event) => event.stopPropagation());
+            remove.addEventListener("click", async (event) => {
+                event.stopPropagation();
+                await removeItem(item.id);
+                if (imageUrls.has(item.id)) {
+                    URL.revokeObjectURL(imageUrls.get(item.id));
+                    imageUrls.delete(item.id);
+                }
+                await renderBoard();
+            });
+            card.append(remove);
+
+            card.addEventListener("pointerdown", (event) => {
+                if (event.target.closest(".card-remove")) return;
+                event.preventDefault();
+                if (tool === "hand" || spaceDown || event.button === 1) return startPan(event);
+                activeGesture = { type: "card", card, item, x: event.clientX, y: event.clientY, startX: item.x, startY: item.y };
+                card.classList.add("is-moving");
+                card.style.zIndex = "10";
+                card.setPointerCapture?.(event.pointerId);
+            });
+            return card;
+        }
+
+        async function renderBoard() {
+            try {
+                const items = await getItems();
+                world.querySelectorAll(".board-card").forEach((card) => card.remove());
+                const center = centerPoint();
+                for (let index = 0; index < items.length; index++) {
+                    const item = items[index];
+                    if (!Number.isFinite(item.x) || !Number.isFinite(item.y)) {
+                        item.x = center.x - 115 + (index % 3) * 42;
+                        item.y = center.y - 85 + Math.floor(index / 3) * 35;
+                        item.tilt = [-1.4, .9, -0.6, 1.2][index % 4];
+                        await storeItem(item);
+                    }
+                    world.append(createCard(item));
+                }
+                emptyState.hidden = items.length > 0;
+            } catch (error) {
+                console.error("Could not load the board", error);
+                showToast("Could not open the saved board");
+            }
+        }
+
+        async function addImages(files, clientX, clientY) {
+            const images = [...files].filter((file) => file.type.startsWith("image/"));
+            const start = Number.isFinite(clientX) ? worldPoint(clientX, clientY) : centerPoint();
+            for (let index = 0; index < images.length; index++) {
+                const file = images[index];
+                await storeItem({ id: crypto.randomUUID(), type: "image", name: file.name.replace(/\.[^.]+$/, ""), blob: file, x: start.x - 135 + index * 34, y: start.y - 100 + index * 26, tilt: [-.8, .7, -1.1, .5][index % 4], createdAt: Date.now() });
+            }
+            if (images.length) await renderBoard();
+            imageInput.value = "";
+        }
+
+        async function imageForAI(blob) {
+            try {
+                const bitmap = await createImageBitmap(blob);
+                const scale = Math.min(1, 1100 / Math.max(bitmap.width, bitmap.height));
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+                canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+                const context = canvas.getContext("2d");
+                context.fillStyle = "#fff";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                bitmap.close?.();
+                return canvas.toDataURL("image/jpeg", .72);
+            } catch (error) {
+                console.warn("Could not prepare a board image for AI", error);
+                return null;
+            }
+        }
+
+        function appendChatMessage(text, type = "assistant") {
+            const message = document.createElement("div");
+            if (type === "question") {
+                message.className = "question-message";
+                message.textContent = text;
+            } else {
+                message.className = `assistant-message${type === "error" ? " is-error" : ""}`;
+                const spark = document.createElement("span");
+                spark.className = "message-spark";
+                spark.textContent = "✧";
+                const body = document.createElement("p");
+                body.textContent = text;
+                message.append(spark, body);
+            }
+            chatMessages.append(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return message;
+        }
+
+        function setAssistantOpen(open) {
+            assistantPanel.hidden = !open;
+            document.getElementById("askToggle").classList.toggle("is-open", open);
+            if (open) setTimeout(() => askInput.focus(), 40);
+        }
+
+        async function askBoard(question) {
+            const cleanQuestion = question.trim();
+            if (!cleanQuestion) return;
+            setAssistantOpen(true);
+            document.querySelector(".suggestion-list")?.remove();
+            appendChatMessage(cleanQuestion, "question");
+            const pending = appendChatMessage("Looking across the notes and images on your board…");
+            askSubmit.disabled = true;
+            try {
+                const items = await getItems();
+                const boardContext = await Promise.all(items.map(async (item) => {
+                    if (item.type === "note") return { type: "note", text: item.text };
+                    return { type: "image", name: item.name, image_data_url: await imageForAI(item.blob) };
+                }));
+                const response = await fetch("/api/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: cleanQuestion, items: boardContext, history: conversationHistory }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || "I couldn't answer that just now.");
+                const answer = result.answer || "I couldn't find an answer in the board yet.";
+                pending.querySelector("p").textContent = answer;
+                conversationHistory.push({ role: "user", text: cleanQuestion }, { role: "assistant", text: answer });
+                if (conversationHistory.length > 12) conversationHistory.splice(0, conversationHistory.length - 12);
+            } catch (error) {
+                pending.classList.add("is-error");
+                pending.querySelector("p").textContent = error.message || "Something went wrong. Please try again.";
+            } finally {
+                askSubmit.disabled = false;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        async function transcribeAudio(blob) {
+            const formData = new FormData();
+            const extension = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+            formData.append("file", blob, `recording.${extension}`);
+            const response = await fetch("/api/transcribe", { method: "POST", body: formData });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || "Could not transcribe that recording.");
+            return result.text || "";
+        }
+
+        async function toggleRecording(button, onTranscript) {
+            if (activeRecorder?.state === "recording") {
+                if (activeRecordButton === button) activeRecorder.stop();
+                else showToast("Finish the current recording first");
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                showToast("Audio recording is not available in this browser");
+                return;
+            }
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const preferred = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+                const mimeType = preferred.find((type) => MediaRecorder.isTypeSupported(type));
+                const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+                const chunks = [];
+                activeRecorder = recorder;
+                activeRecordButton = button;
+                button.classList.add("is-listening");
+                button.setAttribute("aria-pressed", "true");
+                if (button === dictationBtn) dictationText.textContent = "Recording… tap the mic again when you’re done.";
+                recorder.addEventListener("dataavailable", (event) => { if (event.data.size) chunks.push(event.data); });
+                recorder.addEventListener("stop", async () => {
+                    stream.getTracks().forEach((track) => track.stop());
+                    button.classList.remove("is-listening");
+                    button.setAttribute("aria-pressed", "false");
+                    activeRecorder = null;
+                    activeRecordButton = null;
+                    if (button === dictationBtn) dictationText.textContent = "Transcribing…";
+                    if (button === askMic) button.disabled = true;
+                    try {
+                        const transcript = await transcribeAudio(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
+                        if (!transcript.trim()) throw new Error("I couldn't hear any words in that recording.");
+                        await onTranscript(transcript.trim());
+                    } catch (error) {
+                        if (button === askMic) appendChatMessage(error.message, "error");
+                        else {
+                            dictationText.textContent = error.message;
+                            showToast(error.message);
+                        }
+                    } finally {
+                        if (button === askMic) button.disabled = false;
+                    }
+                }, { once: true });
+                recorder.start();
+            } catch (error) {
+                stream?.getTracks().forEach((track) => track.stop());
+                if (button === dictationBtn) dictationText.textContent = error.name === "NotAllowedError" ? "Allow microphone access in your browser, then try again." : "Could not start microphone.";
+                showToast(error.name === "NotAllowedError" ? "Allow microphone access to use dictation" : "Could not start microphone");
+            }
+        }
+
+        async function addNote(text, x, y, color = selectedColor) {
+            const point = Number.isFinite(x) && Number.isFinite(y) ? { x, y } : centerPoint();
+            await storeItem({ id: crypto.randomUUID(), type: "note", text, color, x: point.x, y: point.y, tilt: [-1.1, .8, -.5, 1.2][Math.floor(Math.random() * 4)], createdAt: Date.now() });
+            await renderBoard();
+        }
+
+        function openNoteDialog() {
+            noteDialog.showModal();
+            setTimeout(() => noteText.focus(), 30);
+        }
+
+        document.getElementById("addNoteBtn").addEventListener("click", openNoteDialog);
+        document.getElementById("emptyNoteBtn").addEventListener("click", openNoteDialog);
+        document.getElementById("closeDialog").addEventListener("click", () => noteDialog.close());
+        document.getElementById("addImageBtn").addEventListener("click", () => imageInput.click());
+        document.getElementById("emptyImageBtn").addEventListener("click", () => imageInput.click());
+        imageInput.addEventListener("change", (event) => addImages(event.target.files));
+        document.getElementById("askToggle").addEventListener("click", () => setAssistantOpen(assistantPanel.hidden));
+        document.getElementById("closeAssistant").addEventListener("click", () => setAssistantOpen(false));
+        document.getElementById("askForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const question = askInput.value;
+            askInput.value = "";
+            await askBoard(question);
+        });
+        document.querySelectorAll(".suggestion").forEach((button) => button.addEventListener("click", () => askBoard(button.textContent)));
+        askMic.addEventListener("click", () => toggleRecording(askMic, async (transcript) => {
+            askInput.value = `${askInput.value.trim()}${askInput.value.trim() ? " " : ""}${transcript}`;
+            askInput.focus();
+        }));
+        dictationBtn.addEventListener("click", () => toggleRecording(dictationBtn, async (transcript) => {
+            await addNote(transcript, undefined, undefined, "butter");
+            dictationText.textContent = transcript;
+            showToast("Voice note added to your canvas");
+        }));
+
+        document.querySelectorAll(".color-swatch").forEach((swatch) => swatch.addEventListener("click", () => {
+            document.querySelector(".color-swatch.is-selected")?.classList.remove("is-selected");
+            swatch.classList.add("is-selected");
+            selectedColor = swatch.dataset.color;
+        }));
+
+        document.getElementById("noteForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const text = noteText.value.trim();
+            if (!text) return;
+            await addNote(text);
+            noteText.value = "";
+            noteDialog.close();
+        });
+
+        document.getElementById("selectTool").addEventListener("click", () => setTool("select"));
+        document.getElementById("handTool").addEventListener("click", () => setTool("hand"));
+        function setTool(nextTool) {
+            tool = nextTool;
+            document.getElementById("selectTool").classList.toggle("is-active", tool === "select");
+            document.getElementById("handTool").classList.toggle("is-active", tool === "hand");
+            viewport.classList.toggle("hand-mode", tool === "hand");
+        }
+
+        viewport.addEventListener("pointerdown", (event) => {
+            if (event.button === 1 || event.target === viewport || event.target === world || tool === "hand" || spaceDown) {
+                event.preventDefault();
+                startPan(event);
+                viewport.setPointerCapture?.(event.pointerId);
+            }
+        });
+        window.addEventListener("pointermove", (event) => {
+            if (!activeGesture) return;
+            const dx = event.clientX - activeGesture.x;
+            const dy = event.clientY - activeGesture.y;
+            if (activeGesture.type === "pan") {
+                panX = activeGesture.panX + dx;
+                panY = activeGesture.panY + dy;
+                applyView();
+            } else {
+                const x = activeGesture.startX + dx / zoom;
+                const y = activeGesture.startY + dy / zoom;
+                activeGesture.card.style.left = `${x}px`;
+                activeGesture.card.style.top = `${y}px`;
+                activeGesture.item.x = x;
+                activeGesture.item.y = y;
+            }
+        });
+        window.addEventListener("pointerup", async () => {
+            if (!activeGesture) return;
+            if (activeGesture.type === "card") {
+                activeGesture.card.classList.remove("is-moving");
+                activeGesture.card.style.zIndex = "";
+                await storeItem(activeGesture.item);
+            } else viewport.classList.remove("is-panning");
+            activeGesture = null;
+        });
+        viewport.addEventListener("wheel", (event) => {
+            event.preventDefault();
+            if (event.ctrlKey || event.metaKey) setZoom(zoom * (event.deltaY < 0 ? 1.08 : .92), event.clientX, event.clientY);
+            else {
+                panX -= event.deltaX;
+                panY -= event.deltaY;
+                applyView();
+            }
+        }, { passive: false });
+        viewport.addEventListener("dragenter", (event) => {
+            if (![...event.dataTransfer.types].includes("Files")) return;
+            event.preventDefault();
+            dragDepth++;
+            document.getElementById("dropOverlay").classList.add("is-visible");
+        });
+        viewport.addEventListener("dragover", (event) => {
+            if ([...event.dataTransfer.types].includes("Files")) event.preventDefault();
+        });
+        viewport.addEventListener("dragleave", (event) => {
+            if (!viewport.contains(event.relatedTarget)) {
+                dragDepth = 0;
+                document.getElementById("dropOverlay").classList.remove("is-visible");
+            } else dragDepth = Math.max(0, dragDepth - 1);
+        });
+        viewport.addEventListener("drop", (event) => {
+            event.preventDefault();
+            dragDepth = 0;
+            document.getElementById("dropOverlay").classList.remove("is-visible");
+            addImages(event.dataTransfer.files, event.clientX, event.clientY);
+        });
+        viewport.addEventListener("pointermove", (event) => { lastPointer = { x: event.clientX, y: event.clientY }; });
+        window.addEventListener("paste", (event) => {
+            const imageFiles = [...(event.clipboardData?.items || [])]
+                .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+                .map((item) => item.getAsFile())
+                .filter(Boolean);
+            if (!imageFiles.length) return;
+            event.preventDefault();
+            addImages(imageFiles, lastPointer?.x, lastPointer?.y);
+            showToast("Image pasted onto your board");
+        });
+
+        document.getElementById("zoomIn").addEventListener("click", () => setZoom(zoom * 1.15));
+        document.getElementById("zoomOut").addEventListener("click", () => setZoom(zoom / 1.15));
+        document.getElementById("fitCanvas").addEventListener("click", async () => {
+            const cards = [...world.querySelectorAll(".board-card")];
+            if (!cards.length) {
+                zoom = 1;
+                panX = viewport.clientWidth / 2 - 3000;
+                panY = viewport.clientHeight / 2 - 2400;
+                applyView();
+                return;
+            }
+            const items = await getItems();
+            const minX = Math.min(...items.map((item) => item.x));
+            const minY = Math.min(...items.map((item) => item.y));
+            const maxX = Math.max(...items.map((item) => item.x + (item.type === "image" ? 290 : 230)));
+            const maxY = Math.max(...items.map((item) => item.y + (item.type === "image" ? 320 : 190)));
+            zoom = Math.max(.25, Math.min(1.4, Math.min((viewport.clientWidth - 120) / (maxX - minX), (viewport.clientHeight - 130) / (maxY - minY))));
+            panX = (viewport.clientWidth - (maxX - minX) * zoom) / 2 - minX * zoom;
+            panY = (viewport.clientHeight - (maxY - minY) * zoom) / 2 - minY * zoom;
+            applyView();
+        });
+
+        window.addEventListener("keydown", (event) => {
+            if (event.code === "Space" && !["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)) {
+                event.preventDefault();
+                spaceDown = true;
+                viewport.classList.add("space-pan");
+            }
+            if (event.key.toLowerCase() === "h" && !["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)) setTool("hand");
+            if (event.key.toLowerCase() === "v" && !["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)) setTool("select");
+            if (event.key === "Escape" && noteDialog.open) noteDialog.close();
+        });
+        window.addEventListener("keyup", (event) => {
+            if (event.code === "Space") {
+                spaceDown = false;
+                viewport.classList.remove("space-pan");
+            }
+        });
+
+        function initializeView() {
+            panX = viewport.clientWidth / 2 - 3000;
+            panY = viewport.clientHeight / 2 - 2400;
+            applyView();
+            renderBoard();
+        }
+        initializeView();
+        window.addEventListener("resize", () => { if (!document.querySelector(".board-card")) initializeView(); });
+    </script>
+</body>
 </html>
